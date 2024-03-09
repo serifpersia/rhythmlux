@@ -6,14 +6,6 @@
 	<artifactId>rhythmlux</artifactId>
 	<version>0.0.1</version>
 	<name>RhythmLux</name>
-	<dependencies>
-		<!-- https://mvnrepository.com/artifact/com.github.kwhat/jnativehook -->
-		<dependency>
-			<groupId>com.github.kwhat</groupId>
-			<artifactId>jnativehook</artifactId>
-			<version>2.2.2</version>
-		</dependency>
-	</dependencies>
 	<build>
 		<plugins>
 			<!-- Add the maven-clean-plugin to clean the target folder -->
@@ -37,19 +29,44 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!-- Add the maven-assembly-plugin for creating a fat JAR -->
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.2.0</version>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>3.3.0</version>
+				<executions>
+					<execution>
+						<phase>install</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
 				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
 					<archive>
 						<manifest>
 							<mainClass>
-								com.serifpersia.rhythmlux.RhythmLux</mainClass>
+								rhythmlux.RhythmLux</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
 			</plugin>
 		</plugins>
 	</build>
+	<dependencies>
+		<!-- https://mvnrepository.com/artifact/com.github.kwhat/jnativehook -->
+		<dependency>
+			<groupId>com.github.kwhat</groupId>
+			<artifactId>jnativehook</artifactId>
+			<version>2.2.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.formdev/flatlaf -->
+		<dependency>
+			<groupId>com.formdev</groupId>
+			<artifactId>flatlaf</artifactId>
+			<version>3.4</version>
+		</dependency>
+	</dependencies>
 </project>
