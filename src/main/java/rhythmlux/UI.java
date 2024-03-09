@@ -64,8 +64,8 @@ public class UI extends JPanel {
 		txtField_networkIP.setText("192.168.1.6");
 		txtField_networkIP.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		txtField_networkIP.setHorizontalAlignment(SwingConstants.CENTER);
-		IP_Panel.add(txtField_networkIP);
 		txtField_networkIP.setColumns(10);
+		IP_Panel.add(txtField_networkIP);
 
 		JPanel Port_Panel = new JPanel();
 		FlowLayout fl_Port_Panel = (FlowLayout) Port_Panel.getLayout();
@@ -81,8 +81,8 @@ public class UI extends JPanel {
 		txtField_networkPort.setText("12345");
 		txtField_networkPort.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		txtField_networkPort.setHorizontalAlignment(SwingConstants.CENTER);
-		Port_Panel.add(txtField_networkPort);
 		txtField_networkPort.setColumns(10);
+		Port_Panel.add(txtField_networkPort);
 
 		JPanel UtilButtons_Panel = new JPanel();
 		networkPanel.add(UtilButtons_Panel, BorderLayout.SOUTH);
