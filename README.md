@@ -1,4 +1,4 @@
-# rhythmlux
+# RhythmLux
  Rhythm Game LED Control
 
 In WIP state!
