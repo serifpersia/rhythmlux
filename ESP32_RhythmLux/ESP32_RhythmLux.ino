@@ -16,7 +16,17 @@ WiFiUDP udp;
 
 CRGB leds[NUM_LEDS];
 
+// Define the maximum number of key modes
+const int maxKeyModes = 10;
+
+// Define key mode and LED division arrays
+uint8_t* keyArray; // Pointer to dynamically allocated keyArray
+uint8_t numKeyModes; // Number of key modes
+uint8_t ledDivisions[maxKeyModes + 1]; // One more division than key modes
+uint8_t fadeValue = 64;
+
 boolean keysOn[NUM_LEDS];
+
 
 // Task handles
 TaskHandle_t LEDControlTask;
@@ -83,10 +93,24 @@ void setup() {
     else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
     else if (error == OTA_END_ERROR) Serial.println("End Failed");
   });
-
   ArduinoOTA.begin();
+
+  // Allocate memory for keyArray with default size
+  keyArray = new uint8_t[4] {68, 70, 74, 75}; // Example keycodes for 4 modes
+  numKeyModes = 4;
+
+  calculateLedDivisions();
 }
 
+void calculateLedDivisions() {
+  int sectionSize = NUM_LEDS / numKeyModes;
+  int remainder = NUM_LEDS % numKeyModes;
+
+  ledDivisions[0] = 0;
+  for (int i = 1; i <= numKeyModes; i++) {
+    ledDivisions[i] = ledDivisions[i - 1] + sectionSize + (i <= remainder ? 1 : 0);
+  }
+}
 void loop() {
   delay(1000);
   ArduinoOTA.handle();
@@ -111,7 +135,7 @@ void taskLEDControl(void* parameter) {
         leds[i] = CHSV(hue, 255, 255);
       } else {
         // Fade out LEDs not corresponding to active keycodes
-        leds[i].fadeToBlackBy(64);
+        leds[i].fadeToBlackBy(fadeValue);
       }
     }
 
@@ -136,102 +160,88 @@ void taskWiFiCommunication(void* parameter) {
 }
 
 void receiveUDPData() {
-  // Check for incoming UDP packets
+  // Check if data is available to read
   int packetSize = udp.parsePacket();
   if (packetSize) {
-    // Read the packet into a buffer
-    byte packetBuffer[2];
-    int len = udp.read(packetBuffer, 2);
-    // Assume that the packet contains the keycode and its state as bytes
-    if (len > 0) {
-      if (len == 2) {
-        byte keyCode = packetBuffer[0];
-        bool keyPressed = packetBuffer[1] == 1;
+    byte packetBuffer[packetSize]; // Create a buffer to hold the packet data
+    udp.read(packetBuffer, packetSize); // Read the packet into packetBuffer
 
-        if (keyPressed) {
-          keyOn(keyCode);
-        } else {
-          keyOff(keyCode);
-        }
-        Serial.printf("Keycode: %d, State: %s\n", keyCode, keyPressed ? "pressed" : "released");
-      } else {
-        Serial.println("Invalid packet size");
+    // Process the packet based on its type
+    switch (packetSize) {
+      case 4 ... 10:
+        handleKeysArray(packetBuffer, packetSize);
+        break;
+      case 2:
+        handleKeyCodes(packetBuffer[0], packetBuffer[1] == 1);
+        break;
+      case 1:
+        handleFadeValue(packetBuffer[0]);
+        break;
+      default:
+        break;
+    }
+  }
+}
+void handleKeysArray(byte* packetBuffer, int size) {
+  // Update the number of key modes based on the packet size
+  numKeyModes = size;
+
+  // Free the previously allocated memory for keyArray
+  delete[] keyArray;
+
+  // Allocate new memory and copy data from packetBuffer
+  keyArray = new uint8_t[numKeyModes];
+  for (int i = 0; i < numKeyModes; i++) {
+    keyArray[i] = packetBuffer[i]; // Copy data from packetBuffer
+  }
+  calculateLedDivisions();
+}
+
+
+void handleKeyCodes(int keyCode, boolean keyPressed) {
+  // Print the received key state
+  if (keyPressed) {
+    keyOn(keyCode);
+  } else {
+    keyOff(keyCode);
+  }
+}
+
+void handleFadeValue(byte fade) {
+  fadeValue = fade;
+}
+
+void keyOn(uint8_t keyCode) {
+  int sectionSize = NUM_LEDS / numKeyModes;
+
+  for (int i = 0; i < numKeyModes; i++) {
+    if (keyCode == keyArray[i]) {
+      int startIndex = ledDivisions[i];
+      int endIndex = ledDivisions[i + 1];
+
+      for (int j = startIndex; j < endIndex; j++) {
+        keysOn[j] = true;
       }
+      break;
     }
   }
 }
 
-void keyOn(uint8_t keyCode) {
-  // Define the number of sections and the size of each section
-  int sectionSize = NUM_LEDS / 4; // Divide the LED strip into 4 equal sections
-
-  // Define the start and end indices of the section in the keysOn array
-  int startIndex, endIndex;
-
-  switch (keyCode) {
-    case 68:
-      startIndex = 0;
-      endIndex = sectionSize;
-      break;
-    case 70:
-      startIndex = sectionSize;
-      endIndex = 2 * sectionSize;
-      break;
-    case 74:
-      startIndex = 2 * sectionSize;
-      endIndex = 3 * sectionSize;
-      break;
-    case 75:
-      startIndex = 3 * sectionSize;
-      endIndex = NUM_LEDS;
-      break;
-    default:
-      // Handle unknown keycodes or keys
-      return;
-  }
-
-  // Update the corresponding section of keysOn to true
-  for (int i = startIndex; i < endIndex; i++) {
-    keysOn[i] = true;
-  }
-}
-
 void keyOff(uint8_t keyCode) {
-  // Define the number of sections and the size of each section
-  int sectionSize = NUM_LEDS / 4; // Divide the LED strip into 4 equal sections
+  int sectionSize = NUM_LEDS / numKeyModes;
 
-  // Define the start and end indices of the section in the keysOn array
-  int startIndex, endIndex;
+  for (int i = 0; i < numKeyModes; i++) {
+    if (keyCode == keyArray[i]) {
+      int startIndex = ledDivisions[i];
+      int endIndex = ledDivisions[i + 1];
 
-  // Calculate the section indices based on the key code
-  switch (keyCode) {
-    case 68:
-      startIndex = 0;
-      endIndex = sectionSize;
+      for (int j = startIndex; j < endIndex; j++) {
+        keysOn[j] = false;
+      }
       break;
-    case 70:
-      startIndex = sectionSize;
-      endIndex = 2 * sectionSize;
-      break;
-    case 74:
-      startIndex = 2 * sectionSize;
-      endIndex = 3 * sectionSize;
-      break;
-    case 75:
-      startIndex = 3 * sectionSize;
-      endIndex = NUM_LEDS;
-      break;
-    default:
-      // Handle unknown keycodes or keys
-      return;
-  }
-
-  // Update the corresponding section of keysOn to false
-  for (int i = startIndex; i < endIndex; i++) {
-    keysOn[i] = false;
+    }
   }
 }
-
 void blackout() {
   fill_solid(leds, NUM_LEDS, CRGB::Black);
 }

@@ -2,6 +2,8 @@ package rhythmlux;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -9,13 +11,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.swing.JOptionPane;
+import javax.swing.JSlider;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import com.github.kwhat.jnativehook.GlobalScreen;
 import com.github.kwhat.jnativehook.NativeHookException;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 
-public class UIController implements NativeKeyListener, ActionListener {
+public class UIController implements NativeKeyListener, ActionListener, ChangeListener {
 
 	private static UIController instance;
 	private UI ui;
@@ -29,17 +34,13 @@ public class UIController implements NativeKeyListener, ActionListener {
 
 	public UIController(UI ui) {
 		this.ui = ui;
-
 		attachListeners();
 		try {
 			GlobalScreen.registerNativeHook();
 		} catch (NativeHookException ex) {
-			System.err.println("Failed to register native hook: " + ex.getMessage());
-			System.exit(1);
+			handleError("Failed to register native hook: " + ex.getMessage());
 		}
-
 		GlobalScreen.addNativeKeyListener(this);
-
 	}
 
 	public static UIController getInstance(UI ui) {
@@ -50,50 +51,43 @@ public class UIController implements NativeKeyListener, ActionListener {
 	}
 
 	private void attachListeners() {
-		ui.btn_StartStop.addActionListener(this);
+		ui.cmbx_keyBindingsKeys.addActionListener(this);
+		ui.btn_networkStart.addActionListener(this);
+		ui.btn_networkUpdateESP32.addActionListener(this);
+		ui.sld_Fade.addChangeListener(this);
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() == ui.btn_StartStop) {
+		if (e.getSource() == ui.cmbx_keyBindingsKeys) {
+			ui.updateKeyBindingsButtonsPanel();
+		} else if (e.getSource() == ui.btn_networkStart) {
 			toggleListening();
+		} else if (e.getSource() == ui.btn_networkUpdateESP32) {
+			sendKeysArray(ui.getButtonKeyCodes());
 		}
 	}
 
 	private void toggleListening() {
 		if (!listening) {
 			try {
-				// Create a DatagramSocket
 				socket = new DatagramSocket();
-				address = InetAddress.getByName(ui.IPField.getText());
-				port = Integer.parseInt(ui.portField.getText());
-
+				address = InetAddress.getByName(ui.txtField_networkIP.getText());
+				port = Integer.parseInt(ui.txtField_networkPort.getText());
 				listening = true;
-				ui.btn_StartStop.setText("Stop");
-				JOptionPane.showMessageDialog(ui, "Established UDP connection with " + address + " on port " + port,
-						"Connection Established", JOptionPane.INFORMATION_MESSAGE);
+				ui.btn_networkStart.setText("Stop");
+				showInfoMessage("Established UDP connection with " + ui.txtField_networkIP.getText() + " on port "
+						+ ui.txtField_networkPort.getText(), "Connection Established");
+				sendKeysArray(ui.getButtonKeyCodes());
 			} catch (Exception e) {
-				// Notify the user about the error
-				JOptionPane.showMessageDialog(ui,
-						"Failed to establish connection with " + address + " on port " + port
-								+ ". Check your IP and port and try again.",
-						"Connection Failed", JOptionPane.ERROR_MESSAGE);
-				// Reset the button text
-				ui.btn_StartStop.setText("Start");
-				e.printStackTrace();
+				handleError("Failed to establish connection with " + ui.txtField_networkIP.getText() + " on port "
+						+ ui.txtField_networkPort.getText() + ". Check your IP and port and try again.");
+				ui.btn_networkStart.setText("Start");
 			}
 		} else {
-			// Close the socket
-			try {
-				if (socket != null && !socket.isClosed()) {
-					socket.close();
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				// Handle socket closure exception
-			}
+			closeSocket();
 			listening = false;
-			ui.btn_StartStop.setText("Start");
+			ui.btn_networkStart.setText("Start");
 		}
 	}
 
@@ -101,15 +95,12 @@ public class UIController implements NativeKeyListener, ActionListener {
 	public void nativeKeyPressed(NativeKeyEvent e) {
 		if (listening) {
 			int keyCode = e.getRawCode();
-			// Check if the key is not already pressed
-			if (!pressedKeys.contains(keyCode)) {
+			int[] buttonsKeyCode = ui.getButtonKeyCodes();
+			if (containsKey(buttonsKeyCode, keyCode) && !pressedKeys.contains(keyCode)) {
 				boolean keyPressed = true;
-				// Send a message indicating the key state change
 				sendKeyState(keyCode, keyPressed);
-				// Add the key to the set of pressed keys
 				pressedKeys.add(keyCode);
 			}
-
 		}
 	}
 
@@ -117,28 +108,90 @@ public class UIController implements NativeKeyListener, ActionListener {
 	public void nativeKeyReleased(NativeKeyEvent e) {
 		if (listening) {
 			int keyCode = e.getRawCode();
-			boolean keyPressed = false;
-			sendKeyState(keyCode, keyPressed);
-			// Remove the key from the set of pressed keys
-			pressedKeys.remove(keyCode);
+			int[] buttonsKeyCode = ui.getButtonKeyCodes();
+			if (containsKey(buttonsKeyCode, keyCode)) {
+				boolean keyPressed = false;
+				sendKeyState(keyCode, keyPressed);
+				pressedKeys.remove(keyCode);
+			}
+		}
+	}
 
+	private boolean containsKey(int[] keys, int keyCode) {
+		for (int key : keys) {
+			if (key == keyCode) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void sendKeysArray(int[] keys) {
+		try {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			DataOutputStream dos = new DataOutputStream(baos);
+			for (int key : keys) {
+				dos.writeByte(key);
+			}
+			byte[] message = baos.toByteArray();
+			DatagramPacket packet = new DatagramPacket(message, message.length, address, port);
+			socket.send(packet);
+		} catch (Exception e) {
+			handleError("Error sending keys array: " + e.getMessage());
+		}
+	}
+
+	private void sendFadeValue(int fadeValue) {
+		try {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			DataOutputStream dos = new DataOutputStream(baos);
+			dos.writeByte(fadeValue);
+
+			byte[] message = baos.toByteArray();
+			DatagramPacket packet = new DatagramPacket(message, message.length, address, port);
+			socket.send(packet);
+		} catch (Exception e) {
+			handleError("Error sending fade value: " + e.getMessage());
 		}
 	}
 
 	private void sendKeyState(int keyCode, boolean keyPressed) {
 		try {
-
-			// Create the message as a byte array
 			byte keyStateByte = (byte) (keyPressed ? 1 : 0);
 			byte[] message = { (byte) keyCode, keyStateByte };
-
-			// Create a DatagramPacket with the message, destination address, and port
 			DatagramPacket packet = new DatagramPacket(message, message.length, address, port);
-
-			// Send the packet
 			socket.send(packet);
 		} catch (Exception e) {
-			e.printStackTrace();
+			handleError("Error sending key state: " + e.getMessage());
 		}
 	}
+
+	private void closeSocket() {
+		try {
+			if (socket != null && !socket.isClosed()) {
+				socket.close();
+			}
+		} catch (Exception e) {
+			handleError("Error closing socket: " + e.getMessage());
+		}
+	}
+
+	private void handleError(String message) {
+		JOptionPane.showMessageDialog(ui, message, "Error", JOptionPane.ERROR_MESSAGE);
+	}
+
+	private void showInfoMessage(String message, String title) {
+		JOptionPane.showMessageDialog(ui, message, title, JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	@Override
+	public void stateChanged(ChangeEvent e) {
+		JSlider source = (JSlider) e.getSource();
+		if (!source.getValueIsAdjusting()) {
+			int maxValue = source.getMaximum(); // Get the maximum value of the slider
+			int sliderValue = maxValue - source.getValue(); // Reverse the slider value
+			sendFadeValue(sliderValue);
+		}
+	}
+
 }
