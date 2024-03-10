@@ -9,13 +9,11 @@ WiFiUDP udp;
 
 // Constants and variables for LED control
 #include <FastLED.h>
-#include "FadeController.h"
 
 #define NUM_LEDS 176
 #define DATA_PIN 18
 #define LED_CURRENT 2000
 
-FadeController* fadeCtrl = new FadeController();
 CRGB leds[NUM_LEDS];
 
 boolean keysOn[NUM_LEDS];
@@ -170,22 +168,20 @@ void keyOn(uint8_t keyCode) {
   // Define the start and end indices of the section in the keysOn array
   int startIndex, endIndex;
 
-  // Define the color for each keycode and calculate section indices
-  CRGB color;
   switch (keyCode) {
-    case 32:
+    case 68:
       startIndex = 0;
       endIndex = sectionSize;
       break;
-    case 33:
+    case 70:
       startIndex = sectionSize;
       endIndex = 2 * sectionSize;
       break;
-    case 36:
+    case 74:
       startIndex = 2 * sectionSize;
       endIndex = 3 * sectionSize;
       break;
-    case 37:
+    case 75:
       startIndex = 3 * sectionSize;
       endIndex = NUM_LEDS;
       break;
@@ -209,19 +205,19 @@ void keyOff(uint8_t keyCode) {
 
   // Calculate the section indices based on the key code
   switch (keyCode) {
-    case 32:
+    case 68:
       startIndex = 0;
       endIndex = sectionSize;
       break;
-    case 33:
+    case 70:
       startIndex = sectionSize;
       endIndex = 2 * sectionSize;
       break;
-    case 36:
+    case 74:
       startIndex = 2 * sectionSize;
       endIndex = 3 * sectionSize;
       break;
-    case 37:
+    case 75:
       startIndex = 3 * sectionSize;
       endIndex = NUM_LEDS;
       break;

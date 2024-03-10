@@ -10,6 +10,8 @@ import java.util.Set;
 
 import javax.swing.JOptionPane;
 
+import com.github.kwhat.jnativehook.GlobalScreen;
+import com.github.kwhat.jnativehook.NativeHookException;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 
@@ -20,8 +22,6 @@ public class UIController implements NativeKeyListener, ActionListener {
 
 	private boolean listening = false;
 	private DatagramSocket socket;
-	private String IP = "192.168.1.6";
-	private String Port = "12345";
 
 	private Set<Integer> pressedKeys = new HashSet<>();
 	private InetAddress address;
@@ -31,6 +31,15 @@ public class UIController implements NativeKeyListener, ActionListener {
 		this.ui = ui;
 
 		attachListeners();
+		try {
+			GlobalScreen.registerNativeHook();
+		} catch (NativeHookException ex) {
+			System.err.println("Failed to register native hook: " + ex.getMessage());
+			System.exit(1);
+		}
+
+		GlobalScreen.addNativeKeyListener(this);
+
 	}
 
 	public static UIController getInstance(UI ui) {
@@ -41,15 +50,12 @@ public class UIController implements NativeKeyListener, ActionListener {
 	}
 
 	private void attachListeners() {
-		ui.cmbx_keyBindingsKeys.addActionListener(this);
-		ui.btn_networkSet.addActionListener(this);
+		ui.btn_StartStop.addActionListener(this);
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		if (e.getSource() == ui.cmbx_keyBindingsKeys)
-			ui.updateKeyBindingsButtonsPanel();
-		else if (e.getSource() == ui.btn_networkSet) {
+		if (e.getSource() == ui.btn_StartStop) {
 			toggleListening();
 		}
 	}
@@ -59,21 +65,21 @@ public class UIController implements NativeKeyListener, ActionListener {
 			try {
 				// Create a DatagramSocket
 				socket = new DatagramSocket();
-				address = InetAddress.getByName(IP);
-				port = Integer.parseInt(Port);
+				address = InetAddress.getByName(ui.IPField.getText());
+				port = Integer.parseInt(ui.portField.getText());
 
 				listening = true;
-				ui.btn_networkSet.setText("Stop");
-				JOptionPane.showMessageDialog(ui, "Established UDP connection with " + IP + " on port " + Port,
+				ui.btn_StartStop.setText("Stop");
+				JOptionPane.showMessageDialog(ui, "Established UDP connection with " + address + " on port " + port,
 						"Connection Established", JOptionPane.INFORMATION_MESSAGE);
 			} catch (Exception e) {
 				// Notify the user about the error
 				JOptionPane.showMessageDialog(ui,
-						"Failed to establish connection with " + IP + " on port " + Port
+						"Failed to establish connection with " + address + " on port " + port
 								+ ". Check your IP and port and try again.",
 						"Connection Failed", JOptionPane.ERROR_MESSAGE);
 				// Reset the button text
-				ui.btn_networkSet.setText("Start");
+				ui.btn_StartStop.setText("Start");
 				e.printStackTrace();
 			}
 		} else {
@@ -87,46 +93,35 @@ public class UIController implements NativeKeyListener, ActionListener {
 				// Handle socket closure exception
 			}
 			listening = false;
-			ui.btn_networkSet.setText("Start");
+			ui.btn_StartStop.setText("Start");
 		}
 	}
 
 	@Override
 	public void nativeKeyPressed(NativeKeyEvent e) {
 		if (listening) {
-			int keyCode = e.getKeyCode();
-
-			// Check if the pressed key is one of the keys of interest: D, F, J, K
-			if (keyCode == NativeKeyEvent.VC_D || keyCode == NativeKeyEvent.VC_F || keyCode == NativeKeyEvent.VC_J
-					|| keyCode == NativeKeyEvent.VC_K) {
-
-				// Check if the key is not already pressed
-				if (!pressedKeys.contains(keyCode)) {
-					boolean keyPressed = true;
-					// Send a message indicating the key state change
-					sendKeyState(keyCode, keyPressed);
-					// Add the key to the set of pressed keys
-					pressedKeys.add(keyCode);
-				}
+			int keyCode = e.getRawCode();
+			// Check if the key is not already pressed
+			if (!pressedKeys.contains(keyCode)) {
+				boolean keyPressed = true;
+				// Send a message indicating the key state change
+				sendKeyState(keyCode, keyPressed);
+				// Add the key to the set of pressed keys
+				pressedKeys.add(keyCode);
 			}
+
 		}
 	}
 
 	@Override
 	public void nativeKeyReleased(NativeKeyEvent e) {
 		if (listening) {
-			int keyCode = e.getKeyCode();
+			int keyCode = e.getRawCode();
+			boolean keyPressed = false;
+			sendKeyState(keyCode, keyPressed);
+			// Remove the key from the set of pressed keys
+			pressedKeys.remove(keyCode);
 
-			// Check if the released key is one of the keys of interest: D, F, J, K
-			if (keyCode == NativeKeyEvent.VC_D || keyCode == NativeKeyEvent.VC_F || keyCode == NativeKeyEvent.VC_J
-					|| keyCode == NativeKeyEvent.VC_K) {
-
-				boolean keyPressed = false;
-				// Send a message indicaddddting the key state change
-				sendKeyState(keyCode, keyPressed);
-				// Remove the key from the set of pressed keys
-				pressedKeys.remove(keyCode);
-			}
 		}
 	}
 
@@ -142,8 +137,6 @@ public class UIController implements NativeKeyListener, ActionListener {
 
 			// Send the packet
 			socket.send(packet);
-
-			System.out.println("Sent key state: Key " + keyCode + " is " + (keyPressed ? "pressed" : "released"));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
