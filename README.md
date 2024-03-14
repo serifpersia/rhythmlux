@@ -47,4 +47,6 @@ remove the connection once you see the AP, now you can configure network again.
 - Configure your key bindings and press Start now your key presses will be translated to strip LEDs
 - Use Update button to update state of the keys and fade slider value
 
+## License
+This project is licensed under the [MIT License](LICENSE).
 
