@@ -35,7 +35,7 @@ use jumper cables:
 - DIn Green Wire - ESP32 pin 18
 
 ## Installation
-- Visit page to install RhythmLux automatically.
+- Visit [![Auto Install](https://img.shields.io/badge/Auto-%20Install-blue?style=flat-square)](https://serifpersia.github.io/pianolux-esp32/) page to install RhythmLux automatically.
 - Connect your wifi capable device to ESP32's AP called RhythmLux.
 - Visit http://192.168.4.1/ to setup your network, type your WiFi network name & password and press Configure button, ESP32 will restart and use those WiFi credentials.
 - If your WiFi capable device no longer sees this AP anymore your ESP32 is connected to your local network, to get back to this AP again connect pin 15 to gnd while powering ESP32,
