@@ -174,13 +174,17 @@ bool connectToWiFi() {
 
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print("Status: ");
+    Serial.println(WiFi.status()); // Print Wi-Fi status for debugging
+    Serial.println("Connecting to Wi-Fi...");
     attempts++;
     if (attempts > 5) {
       Serial.println("Failed to connect to Wi-Fi");
       return false;
     }
   }
-  
+
   Serial.println("Connected to Wi-Fi");
   return true;
 }
