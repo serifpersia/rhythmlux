@@ -30,7 +30,7 @@ public class UI extends JPanel {
 	JComboBox<String> cmbx_keyBindingsKeys;
 	private JPanel KeysButtonsPanel;
 
-	private JButton[] keyBindingsButtons; // Array to store buttons
+	private JButton[] keyBindingsButtons;
 
 	ArrayList<Integer> keyCodes = new ArrayList<>(Arrays.asList());
 	JButton btn_networkStart;
@@ -135,7 +135,7 @@ public class UI extends JPanel {
 		panel_1.add(sld_Fade);
 	}
 
-	private void createKeyBindingsPanel() {
+	public void createKeyBindingsPanel() {
 		JPanel keyBindingsPanel = new JPanel();
 		add(keyBindingsPanel);
 		keyBindingsPanel.setLayout(new BorderLayout(0, 0));
@@ -162,9 +162,9 @@ public class UI extends JPanel {
 		cmbx_keyBindingsKeys.setFont(new Font("Dialog", Font.PLAIN, 14));
 		KeysPanel.add(cmbx_keyBindingsKeys);
 
-		KeysButtonsPanel = new JPanel();
-		FlowLayout fl_KeysButtonsPanel = (FlowLayout) KeysButtonsPanel.getLayout();
-		fl_KeysButtonsPanel.setVgap(40);
+		FlowLayout fl_KeysButtonsPanel = new FlowLayout(FlowLayout.CENTER);
+		fl_KeysButtonsPanel.setVgap(10);
+		KeysButtonsPanel = new JPanel(fl_KeysButtonsPanel);
 		keyBindingsInnerPanel.add(KeysButtonsPanel, BorderLayout.CENTER);
 
 		updateKeyBindingsButtonsPanel();
@@ -178,58 +178,26 @@ public class UI extends JPanel {
 
 		String[] keyLabels = getKeyLabels(numKeys);
 
-		// Ensure that the keyCodes ArrayList matches the size of the key labels
-		keyCodes.clear(); // Clear the existing key codes
+		keyCodes.clear();
 		switch (numKeys) {
-		case 4:
-			keyCodes.addAll(Arrays.asList(68, 70, 74, 75));
-			break;
-		case 5:
-			keyCodes.addAll(Arrays.asList(68, 70, 71, 74, 75));
-			break;
-		case 6:
-			keyCodes.addAll(Arrays.asList(83, 68, 70, 74, 75, 76));
-			break;
-		case 7:
-			keyCodes.addAll(Arrays.asList(65, 83, 68, 70, 74, 75, 76));
-			break;
-		case 8:
-			keyCodes.addAll(Arrays.asList(65, 83, 68, 70, 71, 72, 74, 75));
-			break;
-		case 9:
-			keyCodes.addAll(Arrays.asList(65, 83, 68, 70, 71, 72, 74, 75, 76));
-			break;
-		case 10:
-			keyCodes.addAll(Arrays.asList(65, 83, 68, 70, 71, 72, 74, 75, 76, 80));
-			break;
-		default:
-			// Handle default case
-			break;
 		}
 
-		keyBindingsButtons = new JButton[keyLabels.length]; // Initialize the array
+		keyBindingsButtons = new JButton[keyLabels.length];
 
 		for (int i = 0; i < keyLabels.length; i++) {
 			keyBindingsButtons[i] = new JButton(keyLabels[i]);
 			keyBindingsButtons[i].setFont(new Font("Tahoma", Font.PLAIN, 14));
-
-			// Set ID for each button
 			keyBindingsButtons[i].putClientProperty("ID", i);
-
 			KeysButtonsPanel.add(keyBindingsButtons[i]);
-
-			// Adding an action listener to each button
 			keyBindingsButtons[i].addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					JButton clickedButton = (JButton) e.getSource();
-					// Retrieve and print the ID of the clicked button
 					int buttonID = (int) clickedButton.getClientProperty("ID");
-					System.out.println("Clicked button ID: " + buttonID);
-					// Set the text of the clicked button to indicate key capture
-					clickedButton.setText("press any key");
+					clickedButton.setText("Press any key");
 
-					// Wait for a keyboard press
-					// Listen for the next key press event and update the button text
+					for (JButton button : keyBindingsButtons) {
+						button.setEnabled(false);
+					}
 					KeyboardFocusManager.getCurrentKeyboardFocusManager()
 							.addKeyEventDispatcher(new KeyEventDispatcher() {
 								@Override
@@ -237,10 +205,15 @@ public class UI extends JPanel {
 									if (e.getID() == KeyEvent.KEY_PRESSED) {
 										int keyCode = e.getKeyCode();
 										System.out.println("Clicked button keyCode: " + keyCode);
-										clickedButton.setText(String.valueOf((char) keyCode));
-										// Store the key code associated with the button
-										setButtonKeyCode(buttonID, keyCode); // Call the setter function
-										// Remove the dispatcher after handling the key event
+										if (keyCode == KeyEvent.VK_SPACE) {
+											clickedButton.setText("Space");
+										} else {
+											clickedButton.setText(String.valueOf((char) keyCode));
+										}
+										setButtonKeyCode(buttonID, keyCode);
+										for (JButton button : keyBindingsButtons) {
+											button.setEnabled(true);
+										}
 										KeyboardFocusManager.getCurrentKeyboardFocusManager()
 												.removeKeyEventDispatcher(this);
 									}
@@ -249,9 +222,7 @@ public class UI extends JPanel {
 							});
 				}
 			});
-
 		}
-
 		revalidate();
 		repaint();
 	}
@@ -269,22 +240,21 @@ public class UI extends JPanel {
 			labels = new String[] { "S", "D", "F", "J", "K", "L" };
 			break;
 		case 7:
-			labels = new String[] { "A", "S", "D", "F", "J", "K", "L" };
+			labels = new String[] { "A", "S", "D", "Space", "J", "K", "L" };
 			break;
 		case 8:
-			labels = new String[] { "A", "S", "D", "F", "G", "H", "J", "K" };
+			labels = new String[] { "A", "S", "D", "Space", "Space", "H", "J", "K" };
 			break;
 		case 9:
-			labels = new String[] { "A", "S", "D", "F", "G", "H", "J", "K", "L" };
+			labels = new String[] { "A", "S", "D", "F", "Space", "H", "J", "K", "L" };
 			break;
 		case 10:
-			labels = new String[] { "A", "S", "D", "F", "G", "H", "J", "K", "L", "P" };
+			labels = new String[] { "A", "S", "D", "F", "Space", "Space", "J", "K", "L", "P" };
 			break;
 		}
 		return labels;
 	}
 
-	// Getter method for button IDs
 	public int[] getButtonIDs() {
 		int[] buttonIDs = new int[keyBindingsButtons.length];
 		for (int i = 0; i < keyBindingsButtons.length; i++) {
@@ -293,21 +263,17 @@ public class UI extends JPanel {
 		return buttonIDs;
 	}
 
-	// Modify this method to add new key codes to the ArrayList
 	public void setButtonKeyCode(int buttonID, int keyCode) {
 		if (buttonID >= 0 && buttonID < keyCodes.size()) {
 			keyCodes.set(buttonID, keyCode);
 		}
 	}
 
-	// Getter method for button key codes
 	public int[] getButtonKeyCodes() {
-		// Convert ArrayList to array
 		int[] keyCodesArray = new int[keyCodes.size()];
 		for (int i = 0; i < keyCodes.size(); i++) {
 			keyCodesArray[i] = keyCodes.get(i);
 		}
 		return keyCodesArray;
 	}
-
 }

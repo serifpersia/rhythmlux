@@ -1,5 +1,8 @@
 package rhythmlux;
 
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.ByteArrayOutputStream;
@@ -10,7 +13,11 @@ import java.net.InetAddress;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -55,6 +62,7 @@ public class UIController implements NativeKeyListener, ActionListener, ChangeLi
 		ui.btn_networkStart.addActionListener(this);
 		ui.btn_networkUpdateESP32.addActionListener(this);
 		ui.sld_Fade.addChangeListener(this);
+		ui.btn_networkHelp.addActionListener(this);
 	}
 
 	@Override
@@ -65,6 +73,8 @@ public class UIController implements NativeKeyListener, ActionListener, ChangeLi
 			toggleListening();
 		} else if (e.getSource() == ui.btn_networkUpdateESP32) {
 			sendKeysArray(ui.getButtonKeyCodes());
+		} else if (e.getSource() == ui.btn_networkHelp) {
+			handleHelpButton();
 		}
 	}
 
@@ -137,7 +147,7 @@ public class UIController implements NativeKeyListener, ActionListener, ChangeLi
 			DatagramPacket packet = new DatagramPacket(message, message.length, address, port);
 			socket.send(packet);
 		} catch (Exception e) {
-			handleError("Error sending keys array: " + e.getMessage());
+			handleError("Error sending keys mode: " + e.getMessage());
 		}
 	}
 
@@ -188,10 +198,46 @@ public class UIController implements NativeKeyListener, ActionListener, ChangeLi
 	public void stateChanged(ChangeEvent e) {
 		JSlider source = (JSlider) e.getSource();
 		if (!source.getValueIsAdjusting()) {
-			int maxValue = source.getMaximum(); // Get the maximum value of the slider
-			int sliderValue = maxValue - source.getValue(); // Reverse the slider value
+			int maxValue = source.getMaximum();
+			int sliderValue = maxValue - source.getValue();
 			sendFadeValue(sliderValue);
 		}
 	}
 
+	public void handleHelpButton() {
+		String[] helpTips = { "Enter correct ESP32 IP and Port before trying to press Start button.",
+				"Default Port is 12345.",
+				"To change key bindings press the button with mouse click and press key you want.",
+				"Chosen default key bindings key mode will be used when pressing Start button, to update esp32 board with new mode selected & new custom key bindings press ESP32 Update button",
+				"Adjust fade rate with Fade slider use Update button to update esp32 board with new fade value." };
+
+		JDialog dialog = new JDialog((Frame) null, "Help Tips", true);
+		JPanel panel = new JPanel(new BorderLayout());
+
+		JLabel helpTipLabel = new JLabel("<html><p>" + helpTips[0] + "</p></html>");
+		helpTipLabel.setHorizontalAlignment(JLabel.CENTER);
+		panel.add(helpTipLabel, BorderLayout.CENTER);
+
+		JButton nextButton = new JButton("1/" + helpTips.length);
+		nextButton.addActionListener(new ActionListener() {
+			private int currentTipIndex = 0;
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				currentTipIndex = (currentTipIndex + 1) % helpTips.length;
+				helpTipLabel.setText("<html><p>" + helpTips[currentTipIndex] + "</p></html>");
+				nextButton.setText((currentTipIndex + 1) + "/" + helpTips.length);
+			}
+		});
+
+		JPanel buttonPanel = new JPanel(new FlowLayout());
+		buttonPanel.add(nextButton);
+		panel.add(buttonPanel, BorderLayout.SOUTH);
+
+		dialog.add(panel);
+		dialog.setSize(380, 150);
+		dialog.setResizable(false);
+		dialog.setLocationRelativeTo(null);
+		dialog.setVisible(true);
+	}
 }

@@ -27,11 +27,10 @@ public class RhythmLux extends JFrame {
 
 	public RhythmLux() {
 		setTitle("RhythmLux");
-		setSize(348, 364);
+		setSize(332, 364);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLocationRelativeTo(null);
 		setResizable(false);
-
 		getContentPane().add(contentPane);
 
 		new UIController(contentPane);
