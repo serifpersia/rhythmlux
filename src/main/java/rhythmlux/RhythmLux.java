@@ -4,6 +4,7 @@ import com.formdev.flatlaf.FlatDarkLaf;
 
 import java.awt.EventQueue;
 
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -28,6 +29,7 @@ public class RhythmLux extends JFrame {
 	public RhythmLux() {
 		setTitle("RhythmLux");
 		setSize(392, 364);
+		setIconImage(new ImageIcon(getClass().getResource("/logo.png")).getImage());
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLocationRelativeTo(null);
 		setResizable(false);
