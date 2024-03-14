@@ -1,13 +1,13 @@
 {
-  "name": "RhythmLux",
-  "version": "1.0.0",
-  "home_assistant_domain": "rhythmlux",
+  "name": "PianoLux",
+  "version": "1.8",
+  "home_assistant_domain": "pianolux",
   "builds": [
     {
       "chipFamily": "ESP32-S2",
       "parts": [
         {
-          "path": "firmware/esp32s2_16mb.bin",
+          "path": "firmware/esp32s2_4mb.bin",
           "offset": 0
         }
       ]
@@ -16,7 +16,7 @@
       "chipFamily": "ESP32-S3",
       "parts": [
         {
-          "path": "firmware/esp32s3_16mb.bin",
+          "path": "firmware/esp32s3_4mb.bin",
           "offset": 0
         }
       ]
@@ -25,7 +25,7 @@
       "chipFamily": "ESP32",
       "parts": [
         {
-          "path": "firmware/esp32_16mb.bin",
+          "path": "firmware/esp32_4mb.bin",
           "offset": 0
         }
       ]

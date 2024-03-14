@@ -1,7 +1,7 @@
 {
-  "name": "PianoLux",
-  "version": "1.8",
-  "home_assistant_domain": "pianolux",
+  "name": "RhythmLux",
+  "version": "1.0.0",
+  "home_assistant_domain": "rhythmlux",
   "builds": [
     {
       "chipFamily": "ESP32-S2",
