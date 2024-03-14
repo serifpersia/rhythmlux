@@ -1,10 +1,9 @@
 #include <WiFi.h>
-#include <ArduinoOTA.h>
 #include <EEPROM.h>
 
 #include <ESPAsyncWebServer.h>
 #include <WebSocketsServer.h>
-
+#include <ArduinoJson.h>
 #include <SPIFFS.h>
 
 #define SSID_MAX_LENGTH 32
