@@ -2,8 +2,6 @@
 #include <ArduinoOTA.h>
 #include <EEPROM.h>
 
-#include <ArduinoJson.h>
-
 #include <ESPAsyncWebServer.h>
 #include <WebSocketsServer.h>
 
@@ -83,36 +81,6 @@ void setup() {
       1
     );
 
-
-    ArduinoOTA.setHostname("ESP32-OTA");
-
-    ArduinoOTA
-    .onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-        type = "sketch";
-      else // U_LittleFS
-        type = "filesystem";
-
-      // NOTE: if updating LittleFS this would be the place to unmount LittleFS using LittleFS.end()
-      Serial.println("Start updating " + type);
-    })
-    .onEnd([]() {
-      Serial.println("\nEnd");
-    })
-    .onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    })
-    .onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-      else if (error == OTA_END_ERROR) Serial.println("End Failed");
-    });
-    ArduinoOTA.begin();
-
     // Allocate memory for keyArray with default size
     keyArray = new uint8_t[4] {68, 70, 74, 75}; // Example keycodes for 4 modes
     numKeyModes = 4;
@@ -122,8 +90,7 @@ void setup() {
 }
 
 void loop() {
-  webSocket.loop();  // Update function for the webSockets
-  ArduinoOTA.handle();
+  webSocket.loop();
 }
 
 void saveCredentialsToEEPROM() {

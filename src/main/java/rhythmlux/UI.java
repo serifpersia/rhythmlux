@@ -105,7 +105,7 @@ public class UI extends JPanel {
 
 		JPanel panel = new JPanel();
 		UtilButtons_Panel.add(panel);
-		
+
 		btn_networkScan = new JButton("Scan");
 		btn_networkScan.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panel.add(btn_networkScan);
@@ -140,7 +140,7 @@ public class UI extends JPanel {
 		panel_1.add(sld_Fade);
 	}
 
-	public void createKeyBindingsPanel() {
+	private void createKeyBindingsPanel() {
 		JPanel keyBindingsPanel = new JPanel();
 		add(keyBindingsPanel);
 		keyBindingsPanel.setLayout(new BorderLayout(0, 0));
@@ -167,9 +167,9 @@ public class UI extends JPanel {
 		cmbx_keyBindingsKeys.setFont(new Font("Dialog", Font.PLAIN, 14));
 		KeysPanel.add(cmbx_keyBindingsKeys);
 
-		FlowLayout fl_KeysButtonsPanel = new FlowLayout(FlowLayout.CENTER);
-		fl_KeysButtonsPanel.setVgap(10);
-		KeysButtonsPanel = new JPanel(fl_KeysButtonsPanel);
+		KeysButtonsPanel = new JPanel();
+		FlowLayout fl_KeysButtonsPanel = (FlowLayout) KeysButtonsPanel.getLayout();
+		fl_KeysButtonsPanel.setVgap(40);
 		keyBindingsInnerPanel.add(KeysButtonsPanel, BorderLayout.CENTER);
 
 		updateKeyBindingsButtonsPanel();
@@ -185,6 +185,29 @@ public class UI extends JPanel {
 
 		keyCodes.clear();
 		switch (numKeys) {
+		case 4:
+			keyCodes.addAll(Arrays.asList(68, 70, 74, 75));
+			break;
+		case 5:
+			keyCodes.addAll(Arrays.asList(68, 70, 71, 74, 75));
+			break;
+		case 6:
+			keyCodes.addAll(Arrays.asList(83, 68, 70, 74, 75, 76));
+			break;
+		case 7:
+			keyCodes.addAll(Arrays.asList(65, 83, 68, 70, 74, 75, 76));
+			break;
+		case 8:
+			keyCodes.addAll(Arrays.asList(65, 83, 68, 70, 71, 72, 74, 75));
+			break;
+		case 9:
+			keyCodes.addAll(Arrays.asList(65, 83, 68, 70, 71, 72, 74, 75, 76));
+			break;
+		case 10:
+			keyCodes.addAll(Arrays.asList(65, 83, 68, 70, 71, 72, 74, 75, 76, 80));
+			break;
+		default:
+			break;
 		}
 
 		keyBindingsButtons = new JButton[keyLabels.length];
@@ -192,17 +215,18 @@ public class UI extends JPanel {
 		for (int i = 0; i < keyLabels.length; i++) {
 			keyBindingsButtons[i] = new JButton(keyLabels[i]);
 			keyBindingsButtons[i].setFont(new Font("Tahoma", Font.PLAIN, 14));
+
 			keyBindingsButtons[i].putClientProperty("ID", i);
+
 			KeysButtonsPanel.add(keyBindingsButtons[i]);
+
 			keyBindingsButtons[i].addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					JButton clickedButton = (JButton) e.getSource();
 					int buttonID = (int) clickedButton.getClientProperty("ID");
-					clickedButton.setText("Press any key");
+					System.out.println("Clicked button ID: " + buttonID);
+					clickedButton.setText("press any key");
 
-					for (JButton button : keyBindingsButtons) {
-						button.setEnabled(false);
-					}
 					KeyboardFocusManager.getCurrentKeyboardFocusManager()
 							.addKeyEventDispatcher(new KeyEventDispatcher() {
 								@Override
@@ -210,15 +234,8 @@ public class UI extends JPanel {
 									if (e.getID() == KeyEvent.KEY_PRESSED) {
 										int keyCode = e.getKeyCode();
 										System.out.println("Clicked button keyCode: " + keyCode);
-										if (keyCode == KeyEvent.VK_SPACE) {
-											clickedButton.setText("Space");
-										} else {
-											clickedButton.setText(String.valueOf((char) keyCode));
-										}
+										clickedButton.setText(String.valueOf((char) keyCode));
 										setButtonKeyCode(buttonID, keyCode);
-										for (JButton button : keyBindingsButtons) {
-											button.setEnabled(true);
-										}
 										KeyboardFocusManager.getCurrentKeyboardFocusManager()
 												.removeKeyEventDispatcher(this);
 									}
@@ -227,7 +244,9 @@ public class UI extends JPanel {
 							});
 				}
 			});
+
 		}
+
 		revalidate();
 		repaint();
 	}
@@ -245,27 +264,19 @@ public class UI extends JPanel {
 			labels = new String[] { "S", "D", "F", "J", "K", "L" };
 			break;
 		case 7:
-			labels = new String[] { "A", "S", "D", "Space", "J", "K", "L" };
+			labels = new String[] { "A", "S", "D", "F", "J", "K", "L" };
 			break;
 		case 8:
-			labels = new String[] { "A", "S", "D", "Space", "Space", "H", "J", "K" };
+			labels = new String[] { "A", "S", "D", "F", "G", "H", "J", "K" };
 			break;
 		case 9:
-			labels = new String[] { "A", "S", "D", "F", "Space", "H", "J", "K", "L" };
+			labels = new String[] { "A", "S", "D", "F", "G", "H", "J", "K", "L" };
 			break;
 		case 10:
-			labels = new String[] { "A", "S", "D", "F", "Space", "Space", "J", "K", "L", "P" };
+			labels = new String[] { "A", "S", "D", "F", "G", "H", "J", "K", "L", "P" };
 			break;
 		}
 		return labels;
-	}
-
-	public int[] getButtonIDs() {
-		int[] buttonIDs = new int[keyBindingsButtons.length];
-		for (int i = 0; i < keyBindingsButtons.length; i++) {
-			buttonIDs[i] = (int) keyBindingsButtons[i].getClientProperty("ID");
-		}
-		return buttonIDs;
 	}
 
 	public void setButtonKeyCode(int buttonID, int keyCode) {
@@ -275,6 +286,7 @@ public class UI extends JPanel {
 	}
 
 	public int[] getButtonKeyCodes() {
+
 		int[] keyCodesArray = new int[keyCodes.size()];
 		for (int i = 0; i < keyCodes.size(); i++) {
 			keyCodesArray[i] = keyCodes.get(i);

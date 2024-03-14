@@ -257,14 +257,13 @@ public class UIController implements NativeKeyListener, ActionListener, ChangeLi
 			DatagramPacket requestPacket = new DatagramPacket(requestData, requestData.length, broadcastAddress,
 					esp32Port);
 
-			// Send the broadcast packet
 			socket.send(requestPacket);
 			System.out.println("Broadcast scan request sent.");
 
 			byte[] responseData = new byte[1024];
 			DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length);
 
-			socket.setSoTimeout(5000);
+			socket.setSoTimeout(1000);
 			while (true) {
 				socket.receive(responsePacket);
 				String esp32IPAddress = responsePacket.getAddress().getHostAddress();
