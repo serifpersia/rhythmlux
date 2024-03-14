@@ -27,7 +27,7 @@ public class RhythmLux extends JFrame {
 
 	public RhythmLux() {
 		setTitle("RhythmLux");
-		setSize(332, 364);
+		setSize(392, 364);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLocationRelativeTo(null);
 		setResizable(false);

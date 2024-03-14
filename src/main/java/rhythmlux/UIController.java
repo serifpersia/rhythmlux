@@ -63,6 +63,7 @@ public class UIController implements NativeKeyListener, ActionListener, ChangeLi
 		ui.btn_networkUpdateESP32.addActionListener(this);
 		ui.sld_Fade.addChangeListener(this);
 		ui.btn_networkHelp.addActionListener(this);
+		ui.btn_networkScan.addActionListener(this);
 	}
 
 	@Override
@@ -75,6 +76,8 @@ public class UIController implements NativeKeyListener, ActionListener, ChangeLi
 			sendKeysArray(ui.getButtonKeyCodes());
 		} else if (e.getSource() == ui.btn_networkHelp) {
 			handleHelpButton();
+		} else if (e.getSource() == ui.btn_networkScan) {
+			scanForESP32UDP();
 		}
 	}
 
@@ -239,5 +242,42 @@ public class UIController implements NativeKeyListener, ActionListener, ChangeLi
 		dialog.setResizable(false);
 		dialog.setLocationRelativeTo(null);
 		dialog.setVisible(true);
+	}
+
+	private void scanForESP32UDP() {
+		DatagramSocket socket = null;
+		try {
+			socket = new DatagramSocket();
+			socket.setBroadcast(true);
+
+			InetAddress broadcastAddress = InetAddress.getByName("255.255.255.255");
+			int esp32Port = 12345;
+
+			byte[] requestData = "ScanRequest".getBytes();
+			DatagramPacket requestPacket = new DatagramPacket(requestData, requestData.length, broadcastAddress,
+					esp32Port);
+
+			// Send the broadcast packet
+			socket.send(requestPacket);
+			System.out.println("Broadcast scan request sent.");
+
+			byte[] responseData = new byte[1024];
+			DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length);
+
+			socket.setSoTimeout(5000);
+			while (true) {
+				socket.receive(responsePacket);
+				String esp32IPAddress = responsePacket.getAddress().getHostAddress();
+				ui.txtField_networkIP.setText(esp32IPAddress);
+				socket.close();
+				break;
+			}
+		} catch (Exception e) {
+			handleError("Error scanning for ESP32 devices: " + e.getMessage());
+		} finally {
+			if (socket != null && !socket.isClosed()) {
+				socket.close();
+			}
+		}
 	}
 }

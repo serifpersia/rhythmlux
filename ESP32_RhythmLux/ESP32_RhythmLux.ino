@@ -1,10 +1,24 @@
 #include <WiFi.h>
-#include <WiFiUdp.h>
 #include <ArduinoOTA.h>
-const int udpPort = 12345;
-const char* ssid = "yourwifi_ssid";
-const char* password = "yourwifi_pass";
+#include <EEPROM.h>
 
+#include <ArduinoJson.h>
+
+#include <ESPAsyncWebServer.h>
+#include <WebSocketsServer.h>
+
+#include <SPIFFS.h>
+
+#define SSID_MAX_LENGTH 32
+#define PASS_MAX_LENGTH 64
+
+char ssid[SSID_MAX_LENGTH + 1]; // +1 for null terminator
+char password[PASS_MAX_LENGTH + 1]; // +1 for null terminator
+
+AsyncWebServer server(80);
+WebSocketsServer webSocket(81);
+
+#define udpPort 12345
 WiFiUDP udp;
 
 // Constants and variables for LED control
@@ -35,85 +49,140 @@ TaskHandle_t WiFiCommunicationTask;
 void setup() {
   Serial.begin(115200);
 
-  // Connect to WiFi
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
-  }
-  Serial.println("WiFi connected!");
+  // Load credentials from EEPROM
+  loadCredentialsFromEEPROM();
 
-  // Initialize LED control task
-  xTaskCreatePinnedToCore(
-    taskLEDControl,
-    "LEDControlTask",
-    4096,
-    NULL,
-    1,
-    &LEDControlTask,
-    1
-  );
+  // Check if pin 15 is grounded to determine whether to start in AP mode
+  pinMode(15, INPUT_PULLUP);
+  bool startInAPMode = digitalRead(15) == LOW;
 
-  // Initialize WiFi communication task
-  xTaskCreatePinnedToCore(
-    taskWiFiCommunication,
-    "WiFiTask",
-    4096,
-    NULL,
-    1,
-    &WiFiCommunicationTask,
-    1
-  );
+  // Attempt to connect to Wi-Fi
+  if (!connectToWiFi() || startInAPMode) {
+    // If connection fails or startInAPMode is true, start in AP mode
+    startAPMode();
+  } else {
+    // Initialize LED control task
+    xTaskCreatePinnedToCore(
+      taskLEDControl,
+      "LEDControlTask",
+      4096,
+      NULL,
+      1,
+      &LEDControlTask,
+      1
+    );
+
+    // Initialize WiFi communication task
+    xTaskCreatePinnedToCore(
+      taskWiFiCommunication,
+      "WiFiTask",
+      4096,
+      NULL,
+      1,
+      &WiFiCommunicationTask,
+      1
+    );
 
 
-  ArduinoOTA.setHostname("ESP32-OTA");
+    ArduinoOTA.setHostname("ESP32-OTA");
 
-  ArduinoOTA
-  .onStart([]() {
-    String type;
-    if (ArduinoOTA.getCommand() == U_FLASH)
-      type = "sketch";
-    else // U_LittleFS
-      type = "filesystem";
+    ArduinoOTA
+    .onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_LittleFS
+        type = "filesystem";
 
-    // NOTE: if updating LittleFS this would be the place to unmount LittleFS using LittleFS.end()
-    Serial.println("Start updating " + type);
-  })
-  .onEnd([]() {
-    Serial.println("\nEnd");
-  })
-  .onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  })
-  .onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR) Serial.println("End Failed");
-  });
-  ArduinoOTA.begin();
+      // NOTE: if updating LittleFS this would be the place to unmount LittleFS using LittleFS.end()
+      Serial.println("Start updating " + type);
+    })
+    .onEnd([]() {
+      Serial.println("\nEnd");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    });
+    ArduinoOTA.begin();
 
-  // Allocate memory for keyArray with default size
-  keyArray = new uint8_t[4] {68, 70, 74, 75}; // Example keycodes for 4 modes
-  numKeyModes = 4;
+    // Allocate memory for keyArray with default size
+    keyArray = new uint8_t[4] {68, 70, 74, 75}; // Example keycodes for 4 modes
+    numKeyModes = 4;
 
-  calculateLedDivisions();
-}
-
-void calculateLedDivisions() {
-  int sectionSize = NUM_LEDS / numKeyModes;
-  int remainder = NUM_LEDS % numKeyModes;
-
-  ledDivisions[0] = 0;
-  for (int i = 1; i <= numKeyModes; i++) {
-    ledDivisions[i] = ledDivisions[i - 1] + sectionSize + (i <= remainder ? 1 : 0);
+    calculateLedDivisions();
   }
 }
+
 void loop() {
-  delay(1000);
+  webSocket.loop();  // Update function for the webSockets
   ArduinoOTA.handle();
+}
+
+void saveCredentialsToEEPROM() {
+  EEPROM.begin(SSID_MAX_LENGTH + PASS_MAX_LENGTH + 2); // Add 2 for null terminators
+  EEPROM.put(0, ssid);
+  EEPROM.put(SSID_MAX_LENGTH + 1, password);
+  EEPROM.commit();
+  EEPROM.end();
+}
+
+void loadCredentialsFromEEPROM() {
+  EEPROM.begin(SSID_MAX_LENGTH + PASS_MAX_LENGTH + 2); // Add 2 for null terminators
+  EEPROM.get(0, ssid);
+  EEPROM.get(SSID_MAX_LENGTH + 1, password);
+  EEPROM.end();
+}
+
+void startAPMode() {
+  Serial.println("Starting in AP mode...");
+
+  WiFi.softAP("RhythmLux Setup");
+
+  Serial.println(WiFi.softAPIP());
+
+
+  if (SPIFFS.begin()) {
+    server.serveStatic("/", SPIFFS, "/");
+    server.onNotFound([](AsyncWebServerRequest * request) {
+      if (request->url() == "/") {
+        request->send(SPIFFS, "/index.html", "text/html");
+      } else {
+        request->send(404, "text/plain", "Not Found");
+      }
+    });
+  } else {
+    Serial.println("Failed to mount SPIFFS file system");
+  }
+
+  server.begin();
+
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
+}
+
+bool connectToWiFi() {
+  Serial.println("Connecting to Wi-Fi...");
+  WiFi.begin(ssid, password);
+
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED) {
+    attempts++;
+    if (attempts > 5) {
+      Serial.println("Failed to connect to Wi-Fi");
+      return false;
+    }
+  }
+  
+  Serial.println("Connected to Wi-Fi");
+  return true;
 }
 
 void taskLEDControl(void* parameter) {
@@ -159,6 +228,16 @@ void taskWiFiCommunication(void* parameter) {
   }
 }
 
+void calculateLedDivisions() {
+  int sectionSize = NUM_LEDS / numKeyModes;
+  int remainder = NUM_LEDS % numKeyModes;
+
+  ledDivisions[0] = 0;
+  for (int i = 1; i <= numKeyModes; i++) {
+    ledDivisions[i] = ledDivisions[i - 1] + sectionSize + (i <= remainder ? 1 : 0);
+  }
+}
+
 void receiveUDPData() {
   // Check if data is available to read
   int packetSize = udp.parsePacket();
@@ -177,11 +256,29 @@ void receiveUDPData() {
       case 1:
         handleFadeValue(packetBuffer[0]);
         break;
+      case 11: // Special packet size for requesting ESP32 IP info
+        sendESP32IPInfo(); // Send ESP32 IP info in response
+        break;
       default:
         break;
     }
   }
 }
+
+void sendESP32IPInfo() {
+  IPAddress localIP = WiFi.localIP();
+
+  byte responseBuffer[4]; // Assuming IPv4 address
+  responseBuffer[0] = localIP[0];
+  responseBuffer[1] = localIP[1];
+  responseBuffer[2] = localIP[2];
+  responseBuffer[3] = localIP[3];
+
+  udp.beginPacket(udp.remoteIP(), udp.remotePort());
+  udp.write(responseBuffer, 4); // Assuming IPv4 address
+  udp.endPacket();
+}
+
 void handleKeysArray(byte* packetBuffer, int size) {
   // Update the number of key modes based on the packet size
   numKeyModes = size;
@@ -242,6 +339,36 @@ void keyOff(uint8_t keyCode) {
     }
   }
 }
-void blackout() {
-  fill_solid(leds, NUM_LEDS, CRGB::Black);
+
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+  switch (type) {
+    case WStype_TEXT:
+      // Parse the JSON message
+      StaticJsonDocument<200> doc;
+      DeserializationError error = deserializeJson(doc, payload);
+
+      if (error) {
+        Serial.print("JSON parsing error: ");
+        Serial.println(error.c_str());
+        return;
+      }
+
+      String action = doc["action"];
+
+      if (action == "configureNetworkAction") {
+        // Extract SSID and password from the JSON message
+        String wifi_ssid = doc["wifi"];
+        String wifi_password = doc["password"];
+
+        // Copy SSID and password to char arrays
+        wifi_ssid.toCharArray(ssid, SSID_MAX_LENGTH + 1);
+        wifi_password.toCharArray(password, PASS_MAX_LENGTH + 1);
+
+        // Save credentials to EEPROM
+        saveCredentialsToEEPROM();
+        delay(1000);
+        ESP.restart();
+      }
+      break;
+  }
 }

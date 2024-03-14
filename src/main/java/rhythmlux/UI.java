@@ -37,6 +37,7 @@ public class UI extends JPanel {
 	JButton btn_networkUpdateESP32;
 	JButton btn_networkHelp;
 	JSlider sld_Fade;
+	JButton btn_networkScan;
 
 	public UI() {
 		init();
@@ -75,7 +76,7 @@ public class UI extends JPanel {
 		IP_Panel.add(lb_networkIPLabel);
 
 		txtField_networkIP = new JTextField();
-		txtField_networkIP.setText("192.168.1.6");
+		txtField_networkIP.setText("scan to get IP");
 		txtField_networkIP.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		txtField_networkIP.setHorizontalAlignment(SwingConstants.CENTER);
 		txtField_networkIP.setColumns(10);
@@ -104,6 +105,10 @@ public class UI extends JPanel {
 
 		JPanel panel = new JPanel();
 		UtilButtons_Panel.add(panel);
+		
+		btn_networkScan = new JButton("Scan");
+		btn_networkScan.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		panel.add(btn_networkScan);
 
 		btn_networkStart = new JButton("Start");
 		btn_networkStart.setFont(new Font("Tahoma", Font.PLAIN, 14));
