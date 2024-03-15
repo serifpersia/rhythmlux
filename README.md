@@ -34,6 +34,9 @@ use jumper cables:
 - GND White Wire - ESP32 GND pin
 - DIn Green Wire - ESP32 pin 18
 
+![readmediagrm](https://github.com/serifpersia/rhythmlux/assets/62844718/119215fb-0c0b-4c40-81ab-0f0db27b1f4d)
+
+
 ## Installation
 - Visit [![Auto Install](https://img.shields.io/badge/Auto-%20Install-blue?style=flat-square)](https://serifpersia.github.io/rhythmlux/) page to install RhythmLux automatically.
 - Connect your wifi capable device to ESP32's AP called RhythmLux.
