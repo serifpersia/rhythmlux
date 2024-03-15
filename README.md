@@ -37,7 +37,7 @@ use jumper cables:
 ## Installation
 - Visit [![Auto Install](https://img.shields.io/badge/Auto-%20Install-blue?style=flat-square)](https://serifpersia.github.io/rhythmlux/) page to install RhythmLux automatically.
 - Connect your wifi capable device to ESP32's AP called RhythmLux.
-- Visit http://192.168.4.1/ to setup your network, type your WiFi network name & password and press Configure button, ESP32 will restart and use those WiFi credentials.
+- Visit http://rhythmlux.local or just rhythmlux.local or default http://192.168.4.1/ to setup your network, type your WiFi network name & password and press Configure button, ESP32 will restart and use those WiFi credentials.
 - led current default 450 mA, if powering led strip externally modify this value to match your 80-90% of your 5V Power supply example PSU 3A(3000mA) use 2800 value and make sure you connect
   ground from external PSU to gnd pin on ESP32 to avoid groung loop issues.
 - If your WiFi capable device no longer sees this AP anymore your ESP32 is connected to your local network, to get back to this AP again connect pin 15 to gnd while powering ESP32,
