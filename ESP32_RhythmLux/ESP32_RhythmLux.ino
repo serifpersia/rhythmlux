@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <EEPROM.h>
+#include <ESPmDNS.h>
 
 #include <ESPAsyncWebServer.h>
 #include <WebSocketsServer.h>
@@ -141,6 +142,14 @@ void loadCredentialsFromEEPROM() {
   EEPROM.end();
 }
 
+void initMDNS() {
+  if (!MDNS.begin("rhythmlux")) {
+    Serial.println("Error setting up MDNS responder!");
+  } else {
+    Serial.println("mDNS responder started: rhythmlux.local");
+  }
+}
+
 void startAPMode() {
   Serial.println("Starting in AP mode...");
 
@@ -148,6 +157,7 @@ void startAPMode() {
 
   Serial.println(WiFi.softAPIP());
 
+  initMDNS();
 
   if (SPIFFS.begin()) {
     server.serveStatic("/", SPIFFS, "/");
