@@ -56,16 +56,21 @@ function sendData(action, data) {
   }
 }
 
+document.getElementById("ledCurrent").value = 450;
+
 document
   .getElementById("configureButton")
   .addEventListener("click", function() {
     var ssid = document.getElementById("ssid").value;
     var password = document.getElementById("password").value;
+    var ledCurrent = document.getElementById("ledCurrent").value;
     
-   console.log("SSID: " + ssid + ", Password: " + password);
-     // Sending data to the server
-    sendData("configureNetworkAction", { wifi: ssid, password: password });
-    
+    // Sending data to the server
+    sendData("configureNetworkAction", {
+      wifi: ssid,
+      password: password,
+      ledCurrent: ledCurrent
+    });
   });
 
 // Call the init function when the window loads

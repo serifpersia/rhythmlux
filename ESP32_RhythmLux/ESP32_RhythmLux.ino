@@ -23,7 +23,8 @@ WiFiUDP udp;
 
 #define NUM_LEDS 176
 #define DATA_PIN 18
-#define LED_CURRENT 2000
+
+uint16_t LED_CURRENT;
 
 CRGB leds[NUM_LEDS];
 
@@ -43,11 +44,44 @@ boolean keysOn[NUM_LEDS];
 TaskHandle_t LEDControlTask;
 TaskHandle_t WiFiCommunicationTask;
 
+void loadLEDCurrentFromConfig() {
+  if (SPIFFS.begin()) {
+    File configFile = SPIFFS.open("/led_current.cfg", "r");
+    if (configFile) {
+      String currentStr = configFile.readStringUntil('\n');
+      LED_CURRENT = currentStr.toInt();
+      configFile.close();
+      Serial.print("Loaded LED_CURRENT from config file: ");
+      Serial.println(LED_CURRENT);
+    } else {
+      Serial.println("Failed to open LED current config file for reading");
+    }
+  } else {
+    Serial.println("Failed to mount SPIFFS file system");
+  }
+}
+
+void saveLEDCurrentToConfig() {
+  if (SPIFFS.begin()) {
+    File configFile = SPIFFS.open("/led_current.cfg", "w");
+    if (configFile) {
+      configFile.println(LED_CURRENT);
+      configFile.close();
+      Serial.print("Saved LED_CURRENT to config file: ");
+      Serial.println(LED_CURRENT);
+    } else {
+      Serial.println("Failed to open LED current config file for writing");
+    }
+  } else {
+    Serial.println("Failed to mount SPIFFS file system");
+  }
+}
+
 void setup() {
   Serial.begin(115200);
 
-  // Load credentials from EEPROM
   loadCredentialsFromEEPROM();
+  loadLEDCurrentFromConfig();
 
   // Check if pin 15 is grounded to determine whether to start in AP mode
   pinMode(15, INPUT_PULLUP);
@@ -140,12 +174,12 @@ bool connectToWiFi() {
 
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
+    delay(500);
     Serial.print("Status: ");
     Serial.println(WiFi.status()); // Print Wi-Fi status for debugging
     Serial.println("Connecting to Wi-Fi...");
     attempts++;
-    if (attempts > 5) {
+    if (attempts > 10) {
       Serial.println("Failed to connect to Wi-Fi");
       return false;
     }
@@ -330,12 +364,16 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
         String wifi_ssid = doc["wifi"];
         String wifi_password = doc["password"];
 
+        LED_CURRENT = doc["ledCurrent"];
+
         // Copy SSID and password to char arrays
         wifi_ssid.toCharArray(ssid, SSID_MAX_LENGTH + 1);
         wifi_password.toCharArray(password, PASS_MAX_LENGTH + 1);
 
         // Save credentials to EEPROM
         saveCredentialsToEEPROM();
+        delay(1000);
+        saveLEDCurrentToConfig();
         delay(1000);
         ESP.restart();
       }
