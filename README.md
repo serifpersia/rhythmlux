@@ -45,7 +45,7 @@ use jumper cables:
   ground from external PSU to gnd pin on ESP32 to avoid groung loop issues.
 - If your WiFi capable device no longer sees this AP anymore your ESP32 is connected to your local network, to get back to this AP again connect pin 15 to gnd while powering ESP32,
 remove the connection once you see the AP, now you can configure network & led strip current again.
-- Lastly install Java x64 JRE for your system to run the java application
+- Lastly install Java x64 JRE for your system to run the java application, [link](https://www.java.com/download/ie_manual.jsp)
 
 ## Limitations
 Current version doesn't support non letter key bindings. Autohotkey could be used to translate desired key into key that the current version of the app supports.
